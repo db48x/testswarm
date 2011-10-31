@@ -50,14 +50,25 @@
 <table class="results"><tbody>
 <?php
 
-	$result = mysql_queryf("SELECT runs.id as run_id, runs.url as run_url, runs.name as run_name, useragents.engine as browser, useragents.name as browsername, useragents.id as useragent_id, run_useragent.status as status FROM run_useragent, runs, useragents WHERE runs.job_id=%u AND run_useragent.run_id=runs.id AND run_useragent.useragent_id=useragents.id ORDER BY run_id, browsername;", $job_id);
+	$result = mysql_queryf("SELECT runs.id as run_id, runs.url as run_url, runs.name as run_name, useragents.engine as browser, useragents.name as browsername, useragents.id as useragent_id, run_useragent.status as status FROM run_useragent, runs, useragents WHERE runs.job_id=%u AND run_useragent.run_id=runs.id AND run_useragent.useragent_id=useragents.id;", $job_id);
+        $results = array();
+        while ( $row = mysql_fetch_assoc($result) ) {
+          array_push($results, $row);
+        }
+        
+	usort($results, function($a, $b) {
+	  $fa = $a[run_id];
+	  $fb = $b[run_id];
+	  $r = ($fa > $fb) ? 1 : ($fa = $fb) ? 0 : -1;
+	  return ($r != 0) ? $r : strnatcmp($a[browsername], $b[browsername]);
+	});
 
 	$last = "";
 	$output = "";
 	$browsers = array();
 	$addBrowser = true;
 
-	while ( $row = mysql_fetch_assoc($result) ) {
+	foreach ( $results as $row ) {
 		if ( $row["run_id"] != $last ) {
 			if ( $last ) {
 				$addBrowser = false;

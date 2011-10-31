@@ -89,99 +89,118 @@
 		$results = array();
 		$states = array();
 
-	$result = mysql_queryf("SELECT runs.id as run_id, runs.url as run_url, runs.name as run_name, useragents.engine as browser, useragents.name as browsername, useragents.id as useragent_id, run_useragent.status as status FROM run_useragent, runs, useragents WHERE runs.job_id=%u AND run_useragent.run_id=runs.id AND run_useragent.useragent_id=useragents.id ORDER BY run_id, browsername;", $job_id);
-
-	while ( $row = mysql_fetch_assoc($result) ) {
-		if ( $row["run_id"] != $last ) {
-			if ( $last ) {
-				$addBrowser = false;
-			}
-
-			$useragents = array();
-
-			$runResult = mysql_queryf("SELECT run_client.client_id as client_id, run_client.status as status, run_client.fail as fail, run_client.error as error, run_client.total as total, clients.useragent_id as useragent_id, useragents.name as browser FROM useragents, run_client, clients WHERE run_client.run_id=%u AND run_client.client_id=clients.id AND useragents.id=useragent_id ORDER BY browser;", $row["run_id"]);
-
-			while ( $ua_row = mysql_fetch_assoc($runResult) ) {
-				if ( !$useragents[ $ua_row["useragent_id"] ] ) {
-					$useragents[ $ua_row["useragent_id"] ] = array();
-				}
-
-				array_push( $useragents[ $ua_row["useragent_id"] ], $ua_row );
-			}
-		}
-
-		if ( $addBrowser ) {
-			array_push( $browsers, array(
-				"name" => $row["browsername"],
-				"engine" => $row["browser"],
-				"id" => $row["useragent_id"]
-			) );
-		}
-
-		$last_browser = "";
-
-		if ( $useragents[ $row["useragent_id"] ] ) {
-			foreach ( $useragents[ $row["useragent_id"] ] as $ua ) {
-				$status = get_status2(intval($ua["status"]), intval($ua["fail"]), intval($ua["error"]), intval($ua["total"]));
-				if ( $last_browser != $ua["browser"] ) {
-					$cur = $results[ $ua["useragent_id"] ];
-					$results[ $ua["useragent_id"] ] = $cur + intval($ua["fail"]);
-
-					$cur = $states[ $ua["useragent_id"] ];
-
-					if ( strstr($status, "notdone") || strstr($cur, "notdone") ) {
-						$status = "notstarted notdone";
-					} else if ( $status == "error" || $cur == "error" ) {
-						$status = "error";
-					} else if ( $status == "timeout" || $cur == "timeout" ) {
-						$status = "timeout";
-					} else if ( $status == "fail" || $cur == "fail" ) {
-						$status = "fail";
-					} else {
-						$status = "pass";
-					}
-
-					$states[ $ua["useragent_id"] ] = $status;
-				}
-				$last_browser = $ua["browser"];
-			}
-		} else {
-				$cur = $results[ $row["useragent_id"] ];
-				$results[ $row["useragent_id"] ] = $cur + 0;
-				$states[ $row["useragent_id"] ] = "notstarted notdone";
-		}
-
-		$last = $row["run_id"];
-	}
-
-
-	foreach ( $results as $key => $fail ) {
-		$output .= '<td class="' . $states[$key] . '"></td>';
-	}
-
-	$output .= "</tr>\n";
-
-	}
+		$result = mysql_queryf("SELECT runs.id as run_id, runs.url as run_url, runs.name as run_name, useragents.engine as browser, useragents.name as browsername, useragents.id as useragent_id, run_useragent.status as status FROM run_useragent, runs, useragents WHERE runs.job_id=%u AND run_useragent.run_id=runs.id AND run_useragent.useragent_id=useragents.id;", $job_id);
+	        $runs_results = array();
+	        while ( $row = mysql_fetch_assoc($result) ) {
+	          array_push($runs_results, $row);
+	        }
+	        
+		usort($runs_results, function($a, $b) {
+		  $fa = $a[run_id];
+		  $fb = $b[run_id];
+		  $r = ($fa > $fb) ? 1 : ($fa = $fb) ? 0 : -1;
+		  return ($r != 0) ? $r : strnatcmp($a[browsername], $b[browsername]);
+		});
 	
-	if ( $last ) {
-		$header = "<tr><th></th>\n";
-		$last_browser = array();
-		foreach ( $browsers as $browser ) {
-			if ( $last_browser["id"] != $browser["id"] ) {
-				$header .= '<th><div class="browser">' .
-					'<img src="' . swarmpath( 'images/' ) . $browser["engine"] .
-					'.sm.png" class="browser-icon ' . $browser["engine"] .
-					'" alt="' . $browser["name"] .
-					'" title="' . $browser["name"] .
-					'"/><span class="browser-name">' .
-					preg_replace('/\w+ /', "", $browser["name"]) . ', ' .
-					'</span></div></th>';
+		foreach ( $runs_results as $row ) {
+			if ( $row["run_id"] != $last ) {
+				if ( $last ) {
+					$addBrowser = false;
+				}
+	
+				$useragents = array();
+	
+				$runResult = mysql_queryf("SELECT run_client.client_id as client_id, run_client.status as status, run_client.fail as fail, run_client.error as error, run_client.total as total, clients.useragent_id as useragent_id, useragents.name as browser FROM useragents, run_client, clients WHERE run_client.run_id=%u AND run_client.client_id=clients.id AND useragents.id=useragent_id;", $row["run_id"]);
+			        $ua_results = array();
+			        while ( $ua_row = mysql_fetch_assoc($runResult) ) {
+					array_push($ua_results, $ua_row);
+			        }
+			        
+				usort($ua_results, function($a, $b) {
+					return ($r != 0) ? $r : strnatcmp($a[browser], $b[browser]);
+				});
+			
+				foreach ( $ua_results as $ua_row ) {
+					if ( !$useragents[ $ua_row["useragent_id"] ] ) {
+						$useragents[ $ua_row["useragent_id"] ] = array();
+					}
+	
+					array_push( $useragents[ $ua_row["useragent_id"] ], $ua_row );
+				}
 			}
-			$last_browser = $browser;
+	
+			if ( $addBrowser ) {
+				array_push( $browsers, array(
+					"name" => $row["browsername"],
+					"engine" => $row["browser"],
+					"id" => $row["useragent_id"]
+				) );
+			}
+	
+			$last_browser = "";
+	
+			if ( $useragents[ $row["useragent_id"] ] ) {
+				foreach ( $useragents[ $row["useragent_id"] ] as $ua ) {
+					$status = get_status2(intval($ua["status"]), intval($ua["fail"]), intval($ua["error"]), intval($ua["total"]));
+					if ( $last_browser != $ua["browser"] ) {
+						$cur = $results[ $ua["useragent_id"] ];
+						$results[ $ua["useragent_id"] ] = $cur + intval($ua["fail"]);
+	
+						$cur = $states[ $ua["useragent_id"] ];
+	
+						if ( strstr($status, "notdone") || strstr($cur, "notdone") ) {
+							$status = "notstarted notdone";
+						} else if ( $status == "error" || $cur == "error" ) {
+							$status = "error";
+						} else if ( $status == "timeout" || $cur == "timeout" ) {
+							$status = "timeout";
+						} else if ( $status == "fail" || $cur == "fail" ) {
+							$status = "fail";
+						} else {
+							$status = "pass";
+						}
+	
+						$states[ $ua["useragent_id"] ] = $status;
+					}
+					$last_browser = $ua["browser"];
+				}
+			} else {
+					$cur = $results[ $row["useragent_id"] ];
+					$results[ $row["useragent_id"] ] = $cur + 0;
+					$states[ $row["useragent_id"] ] = "notstarted notdone";
+			}
+	
+			$last = $row["run_id"];
 		}
-		$header .= "</tr>\n";
-		$output = $header . $output;
-	}
+	
+	
+		foreach ( $results as $key => $fail ) {
+			$output .= '<td class="' . $states[$key] . '"></td>';
+		}
+	
+		$output .= "</tr>\n";
+	
+		}
+		
+		if ( $last ) {
+			$header = "<tr><th></th>\n";
+			$last_browser = array();
+			foreach ( $browsers as $browser ) {
+				if ( $last_browser["id"] != $browser["id"] ) {
+					$header .= '<th><div class="browser">' .
+						'<img src="' . swarmpath( 'images/' ) . $browser["engine"] .
+						'.sm.png" class="browser-icon ' . $browser["engine"] .
+						'" alt="' . $browser["name"] .
+						'" title="' . $browser["name"] .
+						'"/><span class="browser-name">' .
+						preg_replace('/\w+ /', "", $browser["name"]) . ', ' .
+						'</span></div></th>';
+				}
+				$last_browser = $browser;
+			}
+			$header .= "</tr>\n";
+			$output = $header . $output;
+		}
 
 	echo "$output</tr>\n</tbody>\n</table>";
 
