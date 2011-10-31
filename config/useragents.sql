@@ -2,7 +2,11 @@ INSERT INTO `useragents` (`name`, `engine`, `version`, `active`, `current`, `pop
 
 # Desktop Browsers
 
-('Chrome', 'chrome', '.*', 1, 1, 1, 1, 0, 0),
+('Chrome 12', 'chrome', '^12', 0, 0, 0, 0, 0, 0),
+('Chrome 13', 'chrome', '^13', 0, 0, 0, 0, 0, 0),
+('Chrome 14', 'chrome', '^14', 1, 1, 1, 1, 0, 0),
+('Chrome 15', 'chrome', '^15', 1, 0, 0, 0, 1, 0),
+('Chrome 16', 'chrome', '^16', 1, 0, 0, 0, 1, 0),
 
 ('Firefox 3.5', 'gecko', '^1.9.1[0-9.]*$', 0, 0, 0, 0, 0, 0),
 ('Firefox 3.6', 'gecko', '^1.9.2[0-9.]*$', 1, 0, 1, 1, 0, 0),
@@ -10,6 +14,9 @@ INSERT INTO `useragents` (`name`, `engine`, `version`, `active`, `current`, `pop
 ('Firefox 5', 'gecko', '^5.', 0, 0, 0, 0, 0, 0),
 ('Firefox 6', 'gecko', '^6.', 0, 0, 0, 0, 0, 0),
 ('Firefox 7', 'gecko', '^7.', 1, 1, 1, 1, 0, 0),
+('Firefox 8', 'gecko', '^8.', 1, 0, 0, 0, 1, 0),
+('Firefox 9', 'gecko', '^9.', 1, 0, 0, 0, 1, 0),
+('Firefox 10', 'gecko', '^10.', 1, 0, 0, 0, 1, 0),
 
 ('Internet Explorer 6', 'msie', '^6.', 1, 0, 1, 1, 0, 0),
 ('Internet Explorer 7', 'msie', '^7.', 1, 0, 1, 1, 0, 0),
