@@ -41,13 +41,25 @@ if ( false ) {
 function loadBrowsers($name, $mobile) {
   global $found, $browser, $version, $os;
 
-  $result = mysql_queryf("SELECT useragents.engine as engine, useragents.name as name, (SELECT COUNT(*) FROM clients WHERE useragent_id=useragents.id AND updated > DATE_SUB(NOW(), INTERVAL 1 minute)) as clients, (engine=%s AND %s REGEXP version) as found FROM useragents WHERE active=1 AND mobile=%s ORDER BY engine, name;", $browser, $version, $mobile);
+  $results = array();
+  $result = mysql_queryf("SELECT useragents.engine as engine, useragents.name as name, (SELECT COUNT(*) FROM clients WHERE useragent_id=useragents.id AND updated > DATE_SUB(NOW(), INTERVAL 1 minute)) as clients, (engine=%s AND %s REGEXP version) as found FROM useragents WHERE active=1 AND mobile=%s;", $browser, $version, $mobile);
+
+  while ( $row = mysql_fetch_array($result) ) {
+    array_push($results, $row);
+  }
+
+  usort($results, function($a, $b) {
+    $e = strnatcmp($a[engine], $b[engine]);
+    if ($e != 0)
+      return $e;
+    return strnatcmp($a[name], $b[name]);
+  });
 
   $engine = "";
 
   echo "<div class='browsers'><h3>$name</h3>";
 
-  while ( $row = mysql_fetch_array($result) ) {
+  foreach ( $results as $row ) {
     if ( $row[3] ) {
       $found = 1;
     }
